@@ -31,14 +31,29 @@ class Vector
         inline unsigned int size() const {return NumberOfElement;}
         void resize(unsigned int noe);
         void reset(T nv=T(0));
+        void clear();
+        T min();
+        T AbsMin();
+        T max();
+        T AbsMax();
+        T mean();
+        T modulus();
+        T Sum();
+        T AbsSum();
 
         void linspace(T tstart, T tend); // linearly spaced values between tstart and tend
         void linspace(T tstart, T tend, unsigned int noe); // linearly spaced values between tstart and tend with resize
         void SetRandom(T tstart, T tend); // random distribution min and max value possible respectevely tstart and tend
 
+        void print();
+
     private:
         unsigned int NumberOfElement;
 };
+
+// declaration
+// operator +
+
 
 template <class T>
 Vector<T>::Vector(unsigned int noe, T value)
@@ -58,24 +73,26 @@ Vector<T>::Vector(const Vector<T> &input)
     if (input.NumberOfElement == 0)
     {
         NumberOfElement = 0;
-        delete[] data;
         data = nullptr;
     }
-    else if (input.NumberOfElement != NumberOfElement)
+    else
     {
         NumberOfElement = input.NumberOfElement;
-        delete[] data;
         data = new T[NumberOfElement]();
+        for (unsigned int k=0 ; k<NumberOfElement ; k++) {data[k] = input.data[k];}
     }
-    for (unsigned int k=0 ; k<NumberOfElement ; k++) {data[k] = input.data[k];}
 }
 
 template <class T>
 Vector<T>::Vector(Vector<T> &&input)
 {
-    NumberOfElement = input.NumberOfElement;
-    data = std::move(input.data);
-    input.data = nullptr;
+    if (input.NumberOfElement == 0) {clear();}
+    else
+    {
+        NumberOfElement = input.NumberOfElement;
+        data = std::move(input.data);
+        input.data = nullptr;
+    }
 }
 
 template <class T>
@@ -83,14 +100,12 @@ Vector<T>& Vector<T>::operator= (const Vector<T> &input)
 {
     if (input.NumberOfElement == 0)
     {
-        NumberOfElement = 0;
-        delete[] data;
-        data = nullptr;
+        clear();
     }
     else if (input.NumberOfElement != NumberOfElement)
     {
         NumberOfElement = input.NumberOfElement;
-        delete[] data;
+        if (data != nullptr) {delete[] data;}
         data = new T[NumberOfElement];
     }
     for (unsigned int k=0 ; k<NumberOfElement ; k++) {data[k] = input.data[k];}
@@ -101,6 +116,7 @@ template <class T>
 Vector<T>& Vector<T>::operator= (Vector<T> &&input)
 {
     NumberOfElement = input.NumberOfElement;
+    if (data != nullptr) {delete[] data;}
     data = std::move(input.data);
     input.data = nullptr;
     return *this;
@@ -109,18 +125,52 @@ Vector<T>& Vector<T>::operator= (Vector<T> &&input)
 template <class T>
 Vector<T>::~Vector()
 {
-    if (data != nullptr)
+    clear();
+}
+
+template <class T>
+Vector<T> operator+ (const Vector<T> &left, const Vector<T> &right)
+{
+    if ( left.size() != right.size() )
     {
-        delete[] data;
-        data = nullptr;
+        std::cout << "Warning, trying to sum 2 vector that have different size. Returning left vector." << std::endl;
+        return left;
+    }
+    else
+    {
+        Vector<T> output(left);
+        for (unsigned int k=0 ; k<output.size() ; k++)
+        {
+            output.data[k] += right.data[k];
+        }
+        return output;
+    }
+}
+
+template <class T>
+Vector<T> operator- (const Vector<T> &left, const Vector<T> &right)
+{
+    if ( left.size() != right.size() )
+    {
+        std::cout << "Warning, trying to substarct 2 vector that have different size. Returning left vector." << std::endl;
+        return left;
+    }
+    else
+    {
+        Vector<T> output(left);
+        for (unsigned int k=0 ; k<output.size() ; k++)
+        {
+            output.data[k] -= right.data[k];
+        }
+        return output;
     }
 }
 
 template <class T>
 void Vector<T>::resize(unsigned int noe)
 {
-    if (noe == 0) {noe = 1;} // we forbid to resize to 0
-    if (NumberOfElement != noe)
+    if (noe == 0) {clear();}
+    else if (NumberOfElement != noe)
     {
         NumberOfElement = noe;
         if (data != nullptr) {delete[] data;}
@@ -132,6 +182,105 @@ template <class T>
 void Vector<T>::reset(T nv)
 {
     for (unsigned int k=0 ; k<NumberOfElement ; k++) {data[k] = nv;}
+}
+
+template <class T>
+void Vector<T>::clear()
+{
+    NumberOfElement = 0;
+    if (data != nullptr)
+    {
+        delete[] data;
+        data = nullptr;
+    }
+}
+
+template <class T>
+T Vector<T>::min()
+{
+    T output = data[0];
+    for (unsigned int k=1 ; k<NumberOfElement ; k++)
+    {
+        if (data[k] < output) {output = data[k];}
+    }
+    return output;
+}
+
+template <class T>
+T Vector<T>::AbsMin()
+{
+    T output = std::abs(data[0]);
+    for (unsigned int k=1 ; k<NumberOfElement ; k++)
+    {
+        if (std::abs(data[k]) < output) {output = std::abs(data[k]);}
+    }
+    return output;
+}
+
+template <class T>
+T Vector<T>::max()
+{
+    T output = data[0];
+    for (unsigned int k=1 ; k<NumberOfElement ; k++)
+    {
+        if (data[k] > output) {output = data[k];}
+    }
+    return output;
+}
+
+template <class T>
+T Vector<T>::AbsMax()
+{
+    T output = std::abs(data[0]);
+    for (unsigned int k=1 ; k<NumberOfElement ; k++)
+    {
+        if (std::abs(data[k]) > output) {output = std::abs(data[k]);}
+    }
+    return output;
+}
+
+template <class T>
+T Vector<T>::mean()
+{
+    double sum = 0.0;
+    for (unsigned int k=0 ; k<NumberOfElement ; k++)
+    {
+        sum += double( data[k] );
+    }
+    return T( sum/double(NumberOfElement) );
+}
+
+template <class T>
+T Vector<T>::modulus()
+{
+    double sq = std::abs(data[0])*std::abs(data[0]);
+    for(unsigned int k=0 ; k<NumberOfElement ; k++)
+    {
+        sq += std::abs(data[k])*std::abs(data[k]); //abs is here in case of complex number, need a specific overload function
+    }
+    return T( std::sqrt(sq) );
+}
+
+template <class T>
+T Vector<T>::Sum()
+{
+    T output = T(0);
+    for (unsigned int k=0 ; k<NumberOfElement ; k++)
+    {
+        output += data[k];
+    }
+    return output;
+}
+
+template <class T>
+T Vector<T>::AbsSum()
+{
+    T output = T(0);
+    for (unsigned int k=0 ; k<NumberOfElement ; k++)
+    {
+        output += std::abs(data[k]);
+    }
+    return output;
 }
 
 template <class T>
@@ -181,6 +330,18 @@ void Vector<T>::SetRandom(T tstart, T tend)
     {
         data[k] = T( dist(gen) );
     }
+}
+
+template <class T>
+void Vector<T>::print()
+{
+    // TODO print T type?
+    std::cout << "Vector with " << NumberOfElement << " elements:";
+    for (unsigned int k=0 ; k<NumberOfElement ;  k++)
+    {
+        std::cout << " [" << k << "]=" << data[k];
+    }
+    std::cout << std::endl;
 }
 
 #endif
